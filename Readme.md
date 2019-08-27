@@ -32,3 +32,4 @@
 |DNS|個人架站使用, cloudflare 因Google Domain不支援Let's Encrypt自動更新需要的API
 |SSL|個人架站使用, Let's Encrypt wildcard, [SSLLab Score](https://www.ssllabs.com/ssltest/analyze.html?d=lother.cc&hideResults=on)|
 |nginx|php&其他靜態檔案前面的web server, 曾使用nchan作為pubsub技術實作IM|
+|Jenkins|研究&架設完畢後 因預計要使用的專案有架構問題 無法在實際中推行|
