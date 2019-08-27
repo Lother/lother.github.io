@@ -3,7 +3,7 @@
 ![avatar](https://avatars1.githubusercontent.com/u/241173?s=400&u=dadf22c169e4e90d547bb12f9e90133ca68e9f78&v=4)
 
 * [Linkedin](https://www.linkedin.com/in/lother/)
-* [Site](https://lother.cc/) (not thing here, just do performance test)
+* [Site](https://lother.dev/) (not thing here, just do performance test)
 * Game Stream: [[twitch]](https://www.twitch.tv/lotherex) [[youtube]](https://www.youtube.com/channel/UCWIETnLNUZvpwrmdI_632Iw)
 
 學習技術歷程
