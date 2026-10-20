@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>多 repo 發版管線的設計決策｜Lother Guo</title>
+<meta name="description" content="維運 100+ 個 repo 的自動發版管線時做的四個設計決策：非同步發版、失敗分級、憑證最小化，以及兩個靜默失敗陷阱。">
+<link rel="icon" href="https://avatars.githubusercontent.com/u/241173?s=64&v=4">
+<style>
+  :root {
+    --bg: #fbfaf8; --surface: #ffffff; --text: #1d1d1f; --muted: #5f6368;
+    --line: #e6e3de; --accent: #0b6e69; --accent-soft: #e3f1ef; --code: #f2f0ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121416; --surface: #1a1d20; --text: #ececec; --muted: #a0a6ad;
+      --line: #2c3136; --accent: #5cc8bf; --accent-soft: #173331; --code: #23272b;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.85 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 40px 16px 72px; }
+  .back { font-size: .92rem; }
+  h1 { font-size: 1.75rem; line-height: 1.35; margin: 20px 0 8px; }
+  .lede { color: var(--muted); margin: 0 0 8px; }
+  .byline { color: var(--muted); font-size: .88rem; margin-bottom: 32px; }
+  h2 { font-size: 1.25rem; line-height: 1.4; margin: 44px 0 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+  h3 { font-size: 1rem; margin: 22px 0 6px; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 1.3em; }
+  li + li { margin-top: 4px; }
+  code { font: .88em/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code); border-radius: 4px; padding: 1px 5px; }
+  pre { background: var(--code); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font: .85rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 0 0 16px; }
+  pre code { background: none; padding: 0; }
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 0 0 16px; }
+  .callout p:last-child { margin: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 16px; font-size: .93rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  td:first-child, th:first-child { white-space: nowrap; }
+  .table-scroll { overflow-x: auto; }
+  footer { margin-top: 56px; color: var(--muted); font-size: .85rem; }
+  @media (max-width: 480px) { h1 { font-size: 1.45rem; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="../">← 回首頁</a>
+
+  <h1>多 repo 發版管線的四個設計決策</h1>
+  <p class="lede">一個人維運 100 多個 repo 的建置、發版和同步，靠的不是多寫程式，而是把「會靜默壞掉的地方」一個個找出來。</p>
+  <div class="byline">Lother Guo・技術筆記</div>
+
+  <h2>背景</h2>
+  <p>我維護一組 70 多個 C# 開源專案的在地化分支，加上它們依賴的函式庫，總共 100 多個 repo。每個專案各自有 GitHub Actions 建置和 release，另外有一個「索引 repo」彙整所有專案的最新版本資訊（一份 JSON feed），讓使用者用一個網址就能拿到全部更新。</p>
+  <p>管線由 Python 腳本（約 4,700 行，含單元測試）和 GitHub Actions 組成。開發方式是 AI coding agent 寫程式碼，我負責需求、架構、審查和每一次出事時的裁決。這篇整理其中四個決策。</p>
+
+  <h2>1. 發版從「同步等待」改成「推完就走」</h2>
+  <h3>問題</h3>
+  <p>原本的發版腳本是同步的：推 tag、觸發 release workflow，然後原地等 CI 建置完成、等 release 出現，再更新 feed。一個專案要 60～190 秒，一輪十幾個版本就是<strong>半小時的空窗</strong>，而這半小時純粹在等 GitHub。</p>
+  <h3>決策</h3>
+  <p>把職責拆開：</p>
+  <ol>
+    <li>本機腳本只負責推 tag 並觸發 release，<strong>秒級返回</strong></li>
+    <li>各專案的 release workflow 負責建置與發佈</li>
+    <li>索引 repo 上的<strong>排程 workflow</strong>（每 15 分鐘）掃描各專案的最新 release，有差異才 commit 更新 feed</li>
+  </ol>
+  <h3>為什麼不用跨 repo 事件（repository_dispatch）</h3>
+  <p>即時性更好，但要在 100 多個 repo 裡各放一把能寫入索引 repo 的權杖當 secret。我定下一條紅線：<strong>不再新增任何 PAT</strong>。排程只需要一個身分，憑證面積小得多；代價是最多 15 分鐘的延遲，對這個場景完全可以接受。</p>
+  <h3>保留退路</h3>
+  <p>舊的同步行為留成 <code>--wait</code> 旗標，排程壞掉時可以手動補。順手修掉一個舊缺陷：舊版只改檔不 commit，「版本上線了但 feed 看不到」是零徵兆的失敗。</p>
+
+  <h2>2. 失敗分級：一個專案的暫時錯誤，不該擋住所有人</h2>
+  <h3>事故</h3>
+  <p>第一版的偵測很嚴格：log 裡只要出現任何 <code>[FAIL]</code>，整個 run 就失敗、不寫入 feed。某天晚上 GitHub 平台出事故，<strong>單一專案</strong>的 API 暫時錯誤讓整輪失敗，其餘 50 多個已經建好的 release 全部沒能進 feed。</p>
+  <p>反過來，最早的版本更糟：逐專案 catch 例外、印一行錯誤後照樣以 0 離開，run 永遠是綠的，失敗完全被吞掉。</p>
+  <h3>決策</h3>
+  <p>分級由同步腳本自己判斷，workflow 只看離開碼：</p>
+  <div class="table-scroll">
+  <table>
+    <tr><th>離開碼</th><th>情況</th><th>處理</th></tr>
+    <tr><td><code>0</code></td><td>成功，可能帶警告</td><td>失敗的專案沿用 feed 裡既有的條目，下一班自動重試</td></tr>
+    <tr><td><code>2</code></td><td>全部專案都失敗</td><td>判定為平台級問題，硬失敗</td></tr>
+    <tr><td><code>2</code></td><td>feed 檔寫入失敗</td><td>硬失敗</td></tr>
+    <tr><td><code>2</code></td><td>失敗的專案在 feed 裡沒有舊條目可沿用</td><td>硬失敗：新專案首發不能被靜默漏掉</td></tr>
+    <tr><td><code>2</code></td><td>分級邏輯本身遇到未預期狀態</td><td>當作硬失敗，不吞</td></tr>
+  </table>
+  </div>
+  <p>另外把警告計數寫在 run summary 最上面，每筆警告送一則 annotation，讓「成功但有警告」和「全綠」一眼就分得出來。分級規則有獨立的單元測試。</p>
+  <div class="callout"><p>原則：<strong>能降級就降級，但每一種「可能讓人永遠不知道」的失敗都必須是硬失敗。</strong></p></div>
+
+  <h2>3. 憑證最小化與 fail-closed 的防洩漏檢查</h2>
+  <ul>
+    <li><strong>用 GitHub App 取代個人權杖</strong>：發版和同步都用 App 換來的短期 installation token，run 的執行者顯示成 bot 而不是個人帳號。App 私鑰同時支援「PEM 內容」（CI 的 secret）和「檔案路徑」（本機）兩種形狀，以開頭字串分辨，兩種都有自我測試。</li>
+    <li><strong>上傳前的防洩漏檢查</strong>：要上傳的 zip／gzip 先掃過一遍，找到不該出現的帳號痕跡就不上傳。要找的字詞只存在 repo 以外的本機檔案，原始碼和 workflow 裡都不含它；<strong>讀不到設定就一律不放行</strong>（fail-closed），錯誤訊息只印長度、不印內容。另外也規定比對規則（只認字詞開頭、限定三種大小寫形式），降低誤判。</li>
+  </ul>
+
+  <h2>4. 轉 private 時的兩個靜默陷阱</h2>
+  <p>後來整組 repo 要從 public 轉成 private。排程 workflow 的邏輯完全不用改，但我盤點了「哪些假設只在 public 時成立」，找到兩個會讓管線<strong>不報錯、不顯示失敗、就是永遠不再更新</strong>的陷阱：</p>
+  <h3>(a) Self-hosted runner 不接 public repo 的工作</h3>
+  <p>轉 private 後，GitHub-hosted runner 會開始吃組織的免費額度：每 15 分鐘一次，一個月 2,880 個 run，會直接打爆每月 2,000 分鐘的額度，所以改用 self-hosted runner。但 runner group 預設 <code>allows_public_repositories=false</code>：只要索引 repo 還是 public，job 就會<strong>永遠排在 Queued</strong>，沒有任何錯誤。</p>
+  <h3>(b) 組織 secret 只對 private repo 可見</h3>
+  <p>App 私鑰存成組織層級的 secret，能見度設定是「只給 private repo」。索引 repo 還是 public 的那段時間，workflow 裡讀到的是<strong>空字串</strong>，腳本退回本機登入身分，而 runner 上根本沒登入過。</p>
+  <h3>決策</h3>
+  <p>這兩條是硬相依，所以 workflow 的修改必須和「索引 repo 轉 private」<strong>同一批生效</strong>，不能提前推。這種沒有任何錯誤訊息會主動找上人的失敗，只能靠事前盤點擋下來。</p>
+
+  <h2>附記：卡死的 workflow</h2>
+  <p>有一次 workflow 被觸發後永遠停在 queued、無法取消，連以前跑成功的舊 commit 也一樣。依序排除了 concurrency group、runner 本身（同一台 runner 上別的 repo 正常）、組織 Actions 政策，以及關掉再重開 Actions，全部無效。時間點對應到剛剛批次刪除了這個 workflow 的 600 個歷史 run。</p>
+  <p>最後的修法是：GitHub 用<strong>檔案路徑</strong>識別 workflow，而不是 <code>name:</code> 或內容。把檔案改名就等於建立一個全新的 workflow 實體，繞開壞掉的舊實體；邏輯逐字不變。</p>
+
+  <h2>心得</h2>
+  <ul>
+    <li>自動化最大的風險不是「會報錯的失敗」，而是<strong>靜默的失敗</strong>。每個設計都先問：「這裡壞了，會有人知道嗎？」</li>
+    <li>每次事故都寫成紀錄：症狀、排除過的原因、修法、為什麼這樣修。之後的決策都以這些紀錄為依據。</li>
+    <li>用 AI agent 開發時，我的工作重心在定義紅線、拆解需求、審查設計，以及判斷「這個錯誤該降級還是該擋」。這些判斷沒辦法交給 AI。</li>
+  </ul>
+
+  <footer><a href="../">← 回首頁</a>・© Lother Guo</footer>
+</main>
+</body>
+</html>
