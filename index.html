@@ -78,6 +78,10 @@
   ul.plain { margin: 0; padding-left: 1.2em; }
   ul.plain li + li { margin-top: 4px; }
 
+  .job + .job { margin-top: 22px; }
+  .job-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0 12px; margin-bottom: 6px; }
+  .job-head h3 { font-size: 1.02rem; margin: 0; }
+  .when { color: var(--muted); font-size: .9rem; }
   footer { margin-top: 56px; color: var(--muted); font-size: .85rem; }
 
   @media (max-width: 480px) {
@@ -95,7 +99,7 @@
     <img src="https://avatars.githubusercontent.com/u/241173?s=176&v=4" alt="Lother Guo 的大頭貼">
     <div>
       <h1>Lother Guo</h1>
-      <p class="role">後端工程師・雲端服務與網路基礎架構</p>
+      <p class="role">Senior Backend Developer・雲端服務與網路基礎架構</p>
       <div class="links">
         <a href="https://www.linkedin.com/in/lother">LinkedIn</a>
         <a href="https://github.com/Lother">GitHub</a>
@@ -106,8 +110,38 @@
 
   <section>
     <h2>關於我</h2>
-    <p>後端工程師，主要負責 VPN 閘道、推播服務與報表服務的開發與維運，服務部署於 AWS。</p>
-    <p>從維護老系統、串接金流物流，到建置 WAF、跨雲與異地網路串接，習慣把系統從應用層一路追到網路層。</p>
+    <p>後端工程師，在趨勢科技擔任 Senior Developer 六年，負責消費者 VPN、推播通知、安全報告寄送等服務的開發與維運，橫跨 AWS、Azure、GCP、OCI。</p>
+    <p>從電商、物流到資安產品，習慣把系統從應用層一路追到網路層，也習慣接手老系統、找出瓶頸再重新設計。</p>
+  </section>
+
+  <section>
+    <h2>經歷</h2>
+    <div class="job">
+      <div class="job-head"><h3>趨勢科技（Trend Micro）・Senior Developer</h3><span class="when">2020–2026</span></div>
+      <ul class="plain">
+        <li><strong>消費者 VPN 架構重新設計</strong>：舊架構受限於 Cassandra 叢集，無法跨 VPC／跨雲，故障時資料同步要數小時。重新設計為 user server 與 VPN server 分離、PostgreSQL（RDS）加各節點 Redis 快取的架構，擴展到全球 <strong>500+ 台 VPN server</strong>、橫跨四朵雲，支援 OpenVPN／WireGuard／IPsec</li>
+        <li>不停機遷移：靠用戶端逐步改版轉移使用者，切換當天 <strong>90%</strong> 使用者完成轉移，長尾在一年內收掉後關閉舊系統</li>
+        <li>單點故障約 <strong>5 分鐘</strong>自動處理；新增一台 server 約 <strong>1 小時</strong>內完成部署並併入 DNS 輪替</li>
+        <li>推播通知平台：服務數十個內部產品，將超過 5 年未更新的系統改版並串接 Amazon SNS，維持舊 API 相容</li>
+        <li>安全報告寄送：每月約百萬封多語系信件（Amazon SES），失敗信件進 Redis 佇列重試</li>
+        <li>以 Ansible、Puppet 建立跨雲 Ubuntu 部署範本，服務 Docker 化，全面串接 Icinga2 + Grafana 監控；兼任 on-call 與安全測試</li>
+      </ul>
+    </div>
+    <div class="job">
+      <div class="job-head"><h3>Ally Logistic Property・Senior IT Engineer</h3><span class="when">2018–2019</span></div>
+      <ul class="plain">
+        <li>重整 AWS VPC／EC2 設定並降低帳單；以 docker-compose + CodeBuild + ECR 建立全倉系統的一鍵重建部署</li>
+        <li>無原始碼情況下逆向並修補第三方倉儲系統，避開原廠一個月的修復週期</li>
+      </ul>
+    </div>
+    <div class="job">
+      <div class="job-head"><h3>露天拍賣（PChome eBay）・研發工程師 → 研發主管</h3><span class="when">2014–2018</span></div>
+      <ul class="plain">
+        <li>重寫搜尋索引同步程式（C、Oracle → MySQL），1 億筆資料從 <strong>1 個月縮短到 4 小時</strong></li>
+        <li>在 AWS 建置 HAProxy + ModSecurity + Varnish 反向代理叢集承接突發流量；設計 Nginx + nchan + Redis 即時通訊架構</li>
+        <li>導入 U2F 雙因素驗證、CSP／HSTS 安全標頭與模板化前後端分離，降低 XSS 風險</li>
+      </ul>
+    </div>
   </section>
 
   <section>
@@ -115,19 +149,19 @@
     <div class="focus">
       <div class="card">
         <h3>網路 / VPN</h3>
-        <p>IPsec、OpenVPN、WireGuard；站對站、跨雲與異地網路串接；firewalld 規則管理。</p>
+        <p>IPsec、OpenVPN、WireGuard；500+ 節點的全球 VPN 服務；跨雲網路串接；firewalld 規則管理。</p>
       </div>
       <div class="card">
         <h3>後端服務</h3>
-        <p>推播通知系統、報表與資料服務；快取與訊息佇列（Redis、RabbitMQ）。</p>
+        <p>Go、Python；推播通知（APNs、FCM、SNS）、大量郵件寄送（SES）；Redis、PostgreSQL。</p>
       </div>
       <div class="card">
-        <h3>雲端</h3>
-        <p>AWS：EC2、VPC、RDS、S3、CloudFront、Route 53、CloudWatch。</p>
+        <h3>多雲</h3>
+        <p>AWS（EC2、VPC、RDS、S3、CloudFront、Route 53、SNS、SES）、Azure、GCP、OCI。</p>
       </div>
       <div class="card">
         <h3>維運自動化</h3>
-        <p>Ansible、Puppet 組態管理；Docker；Nginx / HAProxy 反向代理與快取。</p>
+        <p>Ansible、Puppet 跨雲部署範本；Docker；Icinga2 + Grafana 監控；on-call。</p>
       </div>
     </div>
   </section>
@@ -137,7 +171,7 @@
     <div class="group">
       <div class="group-label">雲端與基礎架構</div>
       <ul class="chips">
-        <li>AWS</li><li>Linux</li><li>Docker</li><li>Nginx</li><li>HAProxy</li><li>Ansible</li><li>Puppet</li><li>firewalld</li>
+        <li>AWS</li><li>Azure</li><li>GCP</li><li>OCI</li><li>Ubuntu</li><li>Docker</li><li>Ansible</li><li>Puppet</li><li>Icinga2</li><li>Grafana</li><li>Nginx</li><li>HAProxy</li><li>firewalld</li>
       </ul>
     </div>
     <div class="group">
@@ -149,13 +183,13 @@
     <div class="group">
       <div class="group-label">資料與訊息</div>
       <ul class="chips">
-        <li>MySQL</li><li>Redis</li><li>RabbitMQ</li>
+        <li>PostgreSQL</li><li>MySQL</li><li>Redis</li><li>Cassandra</li><li>RabbitMQ</li>
       </ul>
     </div>
     <div class="group">
       <div class="group-label">語言</div>
       <ul class="chips">
-        <li>PHP</li><li>Java</li><li>Python</li><li>TypeScript</li><li>C#</li><li>C / C++</li>
+        <li>Go</li><li>Python</li><li>PHP</li><li>Java</li><li>TypeScript</li><li>C#</li><li>C / C++</li>
       </ul>
     </div>
   </section>
