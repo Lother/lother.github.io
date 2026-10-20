@@ -54,12 +54,12 @@
   <a class="back" href="../">← 回首頁</a>
 
   <h1>多 repo 發版管線的四個設計決策</h1>
-  <p class="lede">一個人維運 100 多個 repo 的建置、發版和同步，靠的不是多寫程式，而是把「會靜默壞掉的地方」一個個找出來。</p>
+  <p class="lede">維運 100 多個 repo 的建置、發版和同步，靠的不是多寫程式，而是把「會靜默壞掉的地方」一個個找出來。</p>
   <div class="byline">Lother Guo・技術筆記</div>
 
   <h2>背景</h2>
-  <p>我維護一組 70 多個 C# 開源專案的在地化分支，加上它們依賴的函式庫，總共 100 多個 repo。每個專案各自有 GitHub Actions 建置和 release，另外有一個「索引 repo」彙整所有專案的最新版本資訊（一份 JSON feed），讓使用者用一個網址就能拿到全部更新。</p>
-  <p>管線由 Python 腳本（約 4,700 行，含單元測試）和 GitHub Actions 組成。開發方式是 AI coding agent 寫程式碼，我負責需求、架構、審查和每一次出事時的裁決。這篇整理其中四個決策。</p>
+  <p>這套管線服務一組 70 多個 C# 開源專案的在地化分支，加上它們依賴的函式庫，總共 100 多個 repo。每個專案各自有 GitHub Actions 建置和 release，另外有一個「索引 repo」彙整所有專案的最新版本資訊（一份 JSON feed），讓使用者用一個網址就能拿到全部更新。</p>
+  <p>管線由 Python 腳本（約 4,700 行，含單元測試）和 GitHub Actions 組成。實作由 AI coding agent 完成，需求、架構、審查與每次事故的裁決則由人負責。以下整理其中四個決策。</p>
 
   <h2>1. 發版從「同步等待」改成「推完就走」</h2>
   <h3>問題</h3>
@@ -72,7 +72,7 @@
     <li>索引 repo 上的<strong>排程 workflow</strong>（每 15 分鐘）掃描各專案的最新 release，有差異才 commit 更新 feed</li>
   </ol>
   <h3>為什麼不用跨 repo 事件（repository_dispatch）</h3>
-  <p>即時性更好，但要在 100 多個 repo 裡各放一把能寫入索引 repo 的權杖當 secret。我定下一條紅線：<strong>不再新增任何 PAT</strong>。排程只需要一個身分，憑證面積小得多；代價是最多 15 分鐘的延遲，對這個場景完全可以接受。</p>
+  <p>即時性更好，但要在 100 多個 repo 裡各放一把能寫入索引 repo 的權杖當 secret。因此定下一條紅線：<strong>不再新增任何 PAT</strong>。排程只需要一個身分，憑證面積小得多；代價是最多 15 分鐘的延遲，對這個場景完全可以接受。</p>
   <h3>保留退路</h3>
   <p>舊的同步行為留成 <code>--wait</code> 旗標，排程壞掉時可以手動補。順手修掉一個舊缺陷：舊版只改檔不 commit，「版本上線了但 feed 看不到」是零徵兆的失敗。</p>
 
@@ -97,12 +97,12 @@
 
   <h2>3. 憑證最小化與 fail-closed 的防洩漏檢查</h2>
   <ul>
-    <li><strong>用 GitHub App 取代個人權杖</strong>：發版和同步都用 App 換來的短期 installation token，run 的執行者顯示成 bot 而不是個人帳號。App 私鑰同時支援「PEM 內容」（CI 的 secret）和「檔案路徑」（本機）兩種形狀，以開頭字串分辨，兩種都有自我測試。</li>
+    <li><strong>用 GitHub App 取代個人權杖</strong>：發版和同步都用 App 換來的短期 installation token，run 的執行者顯示成 bot 而不是個人帳號。App 私鑰同時支援「PEM 內容」（CI 的 secret）和「檔案路徑」（本機）兩種形狀，以開頭字串分辨，兩種都有內建自測。</li>
     <li><strong>上傳前的防洩漏檢查</strong>：要上傳的 zip／gzip 先掃過一遍，找到不該出現的帳號痕跡就不上傳。要找的字詞只存在 repo 以外的本機檔案，原始碼和 workflow 裡都不含它；<strong>讀不到設定就一律不放行</strong>（fail-closed），錯誤訊息只印長度、不印內容。另外也規定比對規則（只認字詞開頭、限定三種大小寫形式），降低誤判。</li>
   </ul>
 
   <h2>4. 轉 private 時的兩個靜默陷阱</h2>
-  <p>後來整組 repo 要從 public 轉成 private。排程 workflow 的邏輯完全不用改，但我盤點了「哪些假設只在 public 時成立」，找到兩個會讓管線<strong>不報錯、不顯示失敗、就是永遠不再更新</strong>的陷阱：</p>
+  <p>後來整組 repo 要從 public 轉成 private。排程 workflow 的邏輯完全不用改，但盤點「哪些假設只在 public 時成立」之後，找到兩個會讓管線<strong>不報錯、不顯示失敗、就是永遠不再更新</strong>的陷阱：</p>
   <h3>(a) Self-hosted runner 不接 public repo 的工作</h3>
   <p>轉 private 後，GitHub-hosted runner 會開始吃組織的免費額度：每 15 分鐘一次，一個月 2,880 個 run，會直接打爆每月 2,000 分鐘的額度，所以改用 self-hosted runner。但 runner group 預設 <code>allows_public_repositories=false</code>：只要索引 repo 還是 public，job 就會<strong>永遠排在 Queued</strong>，沒有任何錯誤。</p>
   <h3>(b) 組織 secret 只對 private repo 可見</h3>
@@ -118,7 +118,7 @@
   <ul>
     <li>自動化最大的風險不是「會報錯的失敗」，而是<strong>靜默的失敗</strong>。每個設計都先問：「這裡壞了，會有人知道嗎？」</li>
     <li>每次事故都寫成紀錄：症狀、排除過的原因、修法、為什麼這樣修。之後的決策都以這些紀錄為依據。</li>
-    <li>用 AI agent 開發時，我的工作重心在定義紅線、拆解需求、審查設計，以及判斷「這個錯誤該降級還是該擋」。這些判斷沒辦法交給 AI。</li>
+    <li>以 AI agent 開發時，人的工作重心在定義紅線、拆解需求、審查設計，以及判斷「這個錯誤該降級還是該擋」。這些判斷沒辦法交給 AI。</li>
   </ul>
 
   <footer><a href="../">← 回首頁</a>・© Lother Guo</footer>
