@@ -172,12 +172,16 @@
       <p>個人網域，用來測試 Nginx 新功能與 TLS／安全標頭設定：HTTP/2、HTTP/3（QUIC）、HSTS，以及用 hash 白名單取代 unsafe-inline 的嚴格 CSP。評分可以直接查：<a href="https://www.ssllabs.com/ssltest/analyze.html?d=lother.dev">SSL Labs</a>・<a href="https://securityheaders.com/?q=lother.dev&amp;followRedirects=on">Security Headers</a>。</p>
       <div class="meta"><span class="tag">Nginx</span><span class="tag">TLS</span><span class="tag">HTTP/3</span><span class="tag">CSP</span></div>
     </div>
-    <div class="card project">
-      <h3>開源專案的發版與同步管線</h3>
-      <p>維護 70 多個開源 C# 專案的在地化分支；以 Python 與 GitHub Actions 建置自動發版、跨 repo 同步 release、失敗分級回報與上傳前防洩漏檢查的管線。</p>
-      <p style="margin-top:8px"><a href="notes/release-pipeline.html">閱讀設計決策紀錄 →</a></p>
-      <div class="meta"><span class="tag">C#</span><span class="tag">Python</span><span class="tag">GitHub Actions</span></div>
-    </div>
+    <a class="card project" href="https://github.com/Lother/release-pipeline">
+      <h3>release-pipeline：多 repo 發版與同步管線</h3>
+      <p>從實際維運 100+ 個 repo 的管線抽出的通用範本：發版不等 CI、失敗分級（可降級的沿用舊資料，可能被漏掉的一律硬失敗）、GitHub App 短期 token 取代個人 PAT。</p>
+      <div class="meta"><span class="tag">Python</span><span class="tag">GitHub Actions</span><span class="tag">GitHub App</span></div>
+    </a>
+    <a class="card project" href="https://github.com/Lother/leak-guard">
+      <h3>leak-guard：上傳與 push 前的防洩漏檢查</h3>
+      <p>掃描發版檔案（遞迴打開 zip／gzip）或 git push 會送出的物件，擋下帳號名、內部主機名等敏感字詞。字詞不進版控、輸出不洩漏，檢查失敗時一律不放行（fail-closed）。</p>
+      <div class="meta"><span class="tag">Python</span><span class="tag">git hooks</span><span class="tag">Security</span></div>
+    </a>
   </section>
 
   <section>
