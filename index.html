@@ -189,13 +189,23 @@
     <div class="group">
       <div class="group-label">語言</div>
       <ul class="chips">
-        <li>Go</li><li>Python</li><li>PHP</li><li>Java</li><li>TypeScript</li><li>C#</li><li>C / C++</li>
+        <li>Go</li><li>Python</li><li>PHP</li><li>Java</li><li>JavaScript</li><li>TypeScript</li><li>C#</li><li>C / C++</li>
       </ul>
     </div>
   </section>
 
   <section>
     <h2>業餘專案</h2>
+    <a class="card project" href="https://github.com/Lother/fp-guard">
+      <h3>fp-guard 指紋護盾：瀏覽器指紋防護擴充功能</h3>
+      <p>替 Canvas、WebGL、音訊與文字量測指紋加入每次載入都不同的微量雜訊，保護範圍涵蓋同源 iframe、Worker，以及（選用）透過 Chrome 偵錯協定注入的 Service Worker。另有分站 proxy 規則：proxy 連不上時直接失敗、不回退直連，並防止 WebRTC 洩漏真實 IP。</p>
+      <div class="meta"><span class="tag">JavaScript</span><span class="tag">Chrome MV3</span><span class="tag">Privacy</span></div>
+    </a>
+    <a class="card project" href="https://github.com/Lother/imgtr">
+      <h3>imgtr 圖片即譯：網頁圖片翻譯擴充功能</h3>
+      <p>以 Gemini 辨識網頁圖片裡的文字並翻譯，譯文疊回原圖位置；針對 X / Twitter 自動抓原尺寸圖提升辨識率，同一張圖在分頁內快取不重複呼叫。API 金鑰只存在本機瀏覽器，不經任何中間伺服器。</p>
+      <div class="meta"><span class="tag">JavaScript</span><span class="tag">Chrome MV3</span><span class="tag">Gemini API</span></div>
+    </a>
     <a class="card project" href="https://github.com/Lother/argus">
       <h3>argus — Claude Code agent 監控 VS Code 擴充功能</h3>
       <p>讀取 Claude Code 的 JSONL 逐字稿，還原 agent 的每一步工具呼叫、token 與成本。維護繁體中文分支，並加入自己開發的功能與效能改善。</p>
